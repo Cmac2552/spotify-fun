@@ -25,8 +25,8 @@ const (
 )
 
 var (
-	clientID     = ""
-	clientSecret = ""
+	clientID     = "282002c2016a44fc917780fc31fc074a"
+	clientSecret = "7ba57f4525e341ad8bf3affee715da79"
 )
 
 type TokenResponse struct {
@@ -46,8 +46,23 @@ type Playlist struct {
 var server *http.Server
 
 func runAfterServer() {
-	// Temp logic, i will ping server in future
-	time.Sleep(5 * time.Second) // Simulating some work after the server starts
+
+	for {
+		resp, err := http.Get("http://localhost:8080/ping")
+		if err != nil {
+			fmt.Println("Error sending request:", err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			fmt.Println("Received 200 OK. Exiting loop.")
+			break
+		} else {
+			fmt.Printf("Received status code %d. Retrying...\n", resp.StatusCode)
+			time.Sleep(time.Millisecond * 200)
+		}
+	}
 
 	authURL := "https://accounts.spotify.com/authorize?" + "client_id=" + url.QueryEscape(clientID) +
 		"&response_type=code" + "&redirect_uri=" + url.QueryEscape(redirectURI) +
@@ -68,6 +83,8 @@ func main() {
 	}
 
 	http.HandleFunc("/callback", callback)
+
+	http.HandleFunc("/ping", ping)
 
 	fmt.Println("Starting server on :8080...")
 	err := server.ListenAndServe()
@@ -312,4 +329,8 @@ func generatePlaylist(accessToken string) (string, error) {
 
 	return p.ID, err
 
+}
+
+func ping(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 }
